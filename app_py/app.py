@@ -17,7 +17,7 @@ if not os.path.exists("core_js/node_modules"):
         # Usamos sys.executable para asegurar que se ejecute en el entorno virtual correcto
         subprocess.run([sys.executable, "-m", "nodejs.npm", "install"], cwd="core_js", capture_output=True)
 
-# Título principal (🚀 eliminado)
+# Título principal
 st.title("GitHub Repository Auditor")
 st.write("Audita la calidad, actividad y salud de cualquier repositorio público de GitHub.")
 
@@ -139,7 +139,8 @@ if st.button("Iniciar Auditoría 📊"):
 
                         st.markdown("#### 📂 Información Adicional")
                         st.write(f"📜 **Licencia:** {metricas['licencia']}")
-                        st.write(f"📅 **Creado:** {metricas['creado_el'][:10]} | 🔄 **Actualizado:** {metricas['updated_at'][:10]}")
+                        # Línea corregida sustituyendo 'updated_at' por 'actualizado_el'
+                        st.write(f"📅 **Creado:** {metricas['creado_el'][:10]} | 🔄 **Actualizado:** {metricas['actualizado_el'][:10]}")
                         st.write(f"🔗 **Clonar:** `{metricas['url_clonado']}`")
                         
                     except json.JSONDecodeError:
@@ -152,7 +153,7 @@ if st.button("Iniciar Auditoría 📊"):
 # --- PIE DE PÁGINA (Desarrollado por José Luis Asenjo) ---
 st.markdown("---")
 footer_html = """
-    <div style="text-align: center; color: gray; font-style: italic; padding-top: 20px;">
+    <div style="text-align: center; color: gray; font-style: italic; padding_top: 20px;">
         Desarrollado por José Luis Asenjo.
     </div>
 """
