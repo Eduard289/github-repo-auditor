@@ -19,8 +19,6 @@ export async function auditarRepositorio(token, repoUrl) {
         // 2. Inicializar Octokit con el token seguro del usuario
         const octokit = new Octokit({ auth: token });
 
-        console.log(`Conectando con GitHub para analizar: ${owner}/${repo}...`);
-
         // 3. Hacer la petición a la API de GitHub para obtener datos generales del repositorio
         const respuestaRepo = await octokit.request("GET /repos/{owner}/{repo}", {
             owner: owner,
