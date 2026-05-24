@@ -4,7 +4,7 @@ import json
 import os
 import sys
 
-# Configuración de la interfaz visual (Debe ir arriba del todo)
+# Configuración de la interfaz visual
 st.set_page_config(
     page_title="GitHub Repo Auditor",
     page_icon="🔍",
@@ -14,7 +14,6 @@ st.set_page_config(
 # --- INSTALACIÓN AUTOMÁTICA DE DEPENDENCIAS JS ---
 if not os.path.exists("core_js/node_modules"):
     with st.spinner("Instalando dependencias de análisis..."):
-        # Usamos sys.executable para asegurar que se ejecute en el entorno virtual correcto
         subprocess.run([sys.executable, "-m", "nodejs.npm", "install"], cwd="core_js", capture_output=True)
 
 # Título principal
@@ -23,7 +22,7 @@ st.write("Audita la calidad, actividad y salud de cualquier repositorio público
 
 st.markdown("---")
 
-# 1. SECCIÓN DEL MODAL: Autenticación
+# 1. SECCIÓN: Autenticación
 st.subheader("1. Autenticación")
 
 with st.popover("🔑 Configurar Token de GitHub (Recomendado)"):
@@ -77,44 +76,53 @@ if st.button("Iniciar Auditoría 📊"):
                 token_envio = st.session_state["github_token"] if st.session_state["github_token"] else "null"
                 path_bridge = os.path.join("core_js", "bridge.js")
                 
-                # Ejecutamos el puente guardando el resultado completo en el entorno virtual
                 resultado_proceso = subprocess.run(
                     [sys.executable, "-m", "nodejs", path_bridge, token_envio, url_repo],
                     capture_output=True, text=True
                 )
                 
-                # DIAGNÓSTICO: Si el proceso de Node devolvió un código de error (distinto de 0)
                 if resultado_proceso.returncode != 0:
                     st.error("❌ El puente de JavaScript falló al ejecutarse:")
                     st.code(resultado_proceso.stderr if resultado_proceso.stderr else "Sin salida de error.")
-                    st.info("Salida estándar obtenida (Stdout):")
-                    st.code(resultado_proceso.stdout if resultado_proceso.stdout else "Vacío.")
                 else:
-                    # Si terminó bien (código 0), procesamos el JSON de manera segura
                     try:
                         metricas = json.loads(resultado_proceso.stdout)
                         
-                        # --- MOSTRAR RESULTADOS VISUALES AMPLIADOS ---
                         st.success(f"¡Auditoría completada para **{metricas['nombre']}**!")
                         if metricas['descripcion']:
                             st.markdown(f"**Descripción:** *{metricas['descripcion']}*")
                         
-                        # Fila 1: Métricas Principales
-                        st.markdown("#### 📈 Métricas Base")
+                        # FILA 1: Métricas de Popularidad Base
+                        st.markdown("#### 📈 Popularidad e Impacto")
                         c1, c2, c3 = st.columns(3)
-                        c1.metric(label="⭐ Estrellas", value=metricas['estrellas'])
-                        c2.metric(label="🍴 Forks", value=metricas['forks'])
-                        c3.metric(label="⚠️ Issues Abiertos", value=metricas['issues_abiertos'])
+                        c1.metric(label="⭐ Estrellas", value=f"{metricas['estrellas']:,}")
+                        c2.metric(label="🍴 Forks", value=f"{metricas['forks']:,}")
+                        c3.metric(label="👀 Seguidores (Watchers)", value=f"{metricas['seguidores_activos']:,}")
                         
-                        # Fila 2: Nuevas Métricas de Comunidad e Interés
-                        st.markdown("#### 👥 Interés y Estructura")
-                        c4, c5 = st.columns(2)
-                        c4.metric(label="👀 Seguidores Activos (Watchers)", value=metricas['seguidores_activos'])
-                        c5.metric(label="🌿 Ramas (Branches)", value=metricas['ramas_activas'])
+                        # FILA 2: Métricas de Soporte y Comunidad (Métricas Nuevas)
+                        st.markdown("#### 🛠️ Salud del Desarrollo y Soporte")
+                        c4, c5, c6 = st.columns(3)
+                        c4.metric(label="⚠️ Issues Abiertos", value=f"{metricas['issues_abiertos']:,}")
+                        c5.metric(label="✅ Issues Solucionados", value=f"{metricas['issues_cerrados']:,}")
+                        c6.metric(label="🔀 PRs Activos", value=metricas['prs_activos'])
+
+                        # FILA 3: Estructura de Git
+                        st.markdown("#### 📦 Peso y Estructura")
+                        c7, c8 = st.columns(2)
+                        
+                        # Formatear el tamaño convenientemente (KB o MB)
+                        size_kb = metricas['tamano_kb']
+                        if size_kb > 1024:
+                            size_display = f"{size_kb / 1024:.2f} MB"
+                        else:
+                            size_display = f"{size_kb} KB"
+                            
+                        c7.metric(label="💾 Tamaño en Disco", value=size_display)
+                        c8.metric(label="🌿 Ramas Activas", value=metricas['ramas_activas'])
 
                         st.markdown("---")
 
-                        # Fila 3: Análisis Detallado de Lenguajes
+                        # FILA 4: Desglose de Lenguajes
                         st.markdown("#### 💻 Desglose de Código")
                         col_lang_p, col_lang_d = st.columns([1, 2])
                         
@@ -137,14 +145,14 @@ if st.button("Iniciar Auditoría 📊"):
                             else:
                                 st.info("No se pudo desglosar el código.")
 
+                        # FILA 5: Metadatos adicionales
                         st.markdown("#### 📂 Información Adicional")
                         st.write(f"📜 **Licencia:** {metricas['licencia']}")
-                        # Línea corregida sustituyendo 'updated_at' por 'actualizado_el'
                         st.write(f"📅 **Creado:** {metricas['creado_el'][:10]} | 🔄 **Actualizado:** {metricas['actualizado_el'][:10]}")
                         st.write(f"🔗 **Clonar:** `{metricas['url_clonado']}`")
                         
                     except json.JSONDecodeError:
-                        st.error("❌ JavaScript devolvió texto plano en lugar de un objeto JSON estructurado:")
+                        st.error("❌ Error al procesar los datos estructurados del analizador.")
                         st.code(resultado_proceso.stdout)
                         
             except Exception as e:
@@ -153,7 +161,7 @@ if st.button("Iniciar Auditoría 📊"):
 # --- PIE DE PÁGINA (Desarrollado por José Luis Asenjo) ---
 st.markdown("---")
 footer_html = """
-    <div style="text-align: center; color: gray; font-style: italic; padding_top: 20px;">
+    <div style="text-align: center; color: gray; font-style: italic; padding-top: 20px;">
         Desarrollado por José Luis Asenjo.
     </div>
 """
