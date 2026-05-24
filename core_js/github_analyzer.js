@@ -1,9 +1,9 @@
 import { Octokit } from "@octokit/core";
 
 /**
- * Función principal para obtener las métricas básicas de un repositorio.
+ * Función principal para obtener las métricas avanzadas de un repositorio.
  * @param {string} token - El Personal Access Token de GitHub del usuario.
- * @param {string} repoUrl - La URL completa del repositorio (ej: "https://github.com/propietario/repo").
+ * @param {string} repoUrl - La URL completa del repositorio.
  */
 export async function auditarRepositorio(token, repoUrl) {
     try {
@@ -25,14 +25,39 @@ export async function auditarRepositorio(token, repoUrl) {
         const respuestaRepo = await octokit.request("GET /repos/{owner}/{repo}", {
             owner: owner,
             repo: repo,
-            headers: {
-                "X-GitHub-Api-Version": "2022-11-28"
-            }
+            headers: { "X-GitHub-Api-Version": "2022-11-28" }
         });
 
         const datos = respuestaRepo.data;
 
-        // 4. Estructurar las métricas clave que queremos devolver
+        // 4. Petición extra: Obtener el desglose de lenguajes del repositorio
+        let lenguajes = {};
+        try {
+            const respuestaLenguajes = await octokit.request("GET /repos/{owner}/{repo}/languages", {
+                owner: owner,
+                repo: repo,
+                headers: { "X-GitHub-Api-Version": "2022-11-28" }
+            });
+            lenguajes = respuestaLenguajes.data;
+        } catch (e) {
+            console.warn("No se pudieron obtener los lenguajes detallados.");
+        }
+
+        // 5. Petición extra: Intentar obtener las ramas (branches) del repositorio
+        let totalRamas = 0;
+        try {
+            const respuestaRamas = await octokit.request("GET /repos/{owner}/{repo}/branches", {
+                owner: owner,
+                repo: repo,
+                per_page: 100, // Máximo por página estándar
+                headers: { "X-GitHub-Api-Version": "2022-11-28" }
+            });
+            totalRamas = respuestaRamas.data.length;
+        } catch (e) {
+            totalRamas = "Requiere Auth/Admin";
+        }
+
+        // 6. Estructurar el nuevo JSON con los tres nuevos parámetros incluidos
         const metricas = {
             nombre: datos.name,
             descripcion: datos.description || "Sin descripción disponible.",
@@ -42,7 +67,12 @@ export async function auditarRepositorio(token, repoUrl) {
             licencia: datos.license ? datos.license.name : "No especificada",
             url_clonado: datos.clone_url,
             creado_el: datos.created_at,
-            actualizado_el: datos.updated_at
+            actualizado_el: datos.updated_at,
+            // --- NUEVOS PARÁMETROS ---
+            lenguaje_principal: datos.language || "No detectado",
+            top_lenguajes: lenguajes,
+            seguidores_activos: datos.subscribers_count || 0,
+            ramas_activas: totalRamas
         };
 
         return metricas;
