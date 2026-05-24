@@ -1,4 +1,3 @@
-# github-repo-auditor
 
 # GitHub Repository Auditor
 
