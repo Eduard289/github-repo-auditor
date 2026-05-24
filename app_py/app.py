@@ -11,16 +11,18 @@ st.set_page_config(
     layout="centered"
 )
 
+# --- DETECCIÓN ABSOLUTA DE NODE/NPM PORTÁTIL ---
+# Localizamos la carpeta 'bin' o de scripts del entorno virtual de Python actual
+path_binario = os.path.dirname(sys.executable)
+
+# En servidores Linux (como Streamlit Cloud), nodejs-bin deja los ejecutables ahí
+node_path = os.path.join(path_binario, "node")
+npm_path = os.path.join(path_binario, "npm")
+
 # --- INSTALACIÓN AUTOMÁTICA DE DEPENDENCIAS JS ---
-# Ejecutamos la instalación de librerías de JS usando el Node portátil de 'nodejs-bin'
 if not os.path.exists("core_js/node_modules"):
-    try:
-        # Intentamos el comando estándar (nodejs-bin lo añade al entorno)
-        subprocess.run(["npm", "install"], cwd="core_js", capture_output=True)
-    except FileNotFoundError:
-        # Si el sistema requiere la ruta explícita del entorno virtual de Python:
-        path_binario = os.path.dirname(sys.executable)
-        npm_path = os.path.join(path_binario, "npm")
+    with st.spinner("Instalando librerías de Node.js por primera vez..."):
+        # Ejecutamos usando la ruta absoluta calculada de NPM
         subprocess.run([npm_path, "install"], cwd="core_js", capture_output=True)
 
 st.title("GitHub Repository Auditor 🚀")
@@ -89,24 +91,13 @@ if st.button("Iniciar Auditoría 📊"):
                 token_envio = st.session_state["github_token"] if st.session_state["github_token"] else "null"
                 path_bridge = os.path.join("core_js", "bridge.js")
                 
-                # Intentamos llamar a node de forma estándar
-                try:
-                    resultado_proceso = subprocess.run(
-                        ["node", path_bridge, token_envio, url_repo],
-                        capture_output=True,
-                        text=True,
-                        check=True
-                    )
-                except FileNotFoundError:
-                    # Si node está en la ruta explícita de los binarios portátiles
-                    path_binario = os.path.dirname(sys.executable)
-                    node_path = os.path.join(path_binario, "node")
-                    resultado_proceso = subprocess.run(
-                        [node_path, path_bridge, token_envio, url_repo],
-                        capture_output=True,
-                        text=True,
-                        check=True
-                    )
+                # Ejecutamos llamando directamente al binario absoluto de Node
+                resultado_proceso = subprocess.run(
+                    [node_path, path_bridge, token_envio, url_repo],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
                 
                 # Convertimos la salida JSON a un diccionario de Python
                 metricas = json.loads(resultado_proceso.stdout)
