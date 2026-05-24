@@ -2,31 +2,25 @@ import streamlit as st
 import subprocess
 import json
 import os
-import sys
 
-# 1. DETECCIÓN ABSOLUTA DE NODE/NPM PORTÁTIL (¡Esto evita el FileNotFoundError!)
-path_binario = os.path.dirname(sys.executable)
-node_path = os.path.join(path_binario, "node")
-npm_path = os.path.join(path_binario, "npm")
-
-# 2. INSTALACIÓN AUTOMÁTICA DE DEPENDENCIAS JS
-if not os.path.exists("core_js/node_modules"):
-    # Usamos la ruta absoluta calculada hacia NPM portátil
-    subprocess.run([npm_path, "install"], cwd="core_js", capture_output=True)
-
-# Configuración de la interfaz visual
+# Configuración de la interfaz visual (Debe ir arriba del todo)
 st.set_page_config(
     page_title="GitHub Repo Auditor",
     page_icon="🚀",
     layout="centered"
 )
 
+# --- INSTALACIÓN AUTOMÁTICA DE DEPENDENCIAS JS ---
+if not os.path.exists("core_js/node_modules"):
+    # Invocamos de forma nativa el npm interno del paquete nodejs-bin instalado en Python
+    subprocess.run(["python", "-m", "nodejs.npm", "install"], cwd="core_js", capture_output=True)
+
 st.title("GitHub Repository Auditor 🚀")
 st.write("Audita la calidad, actividad y salud de cualquier repositorio público de GitHub.")
 
 st.markdown("---")
 
-# 3. SECCIÓN DEL MODAL: Configuración segura del Token
+# 1. SECCIÓN DEL MODAL: Configuración segura del Token
 st.subheader("1. Autenticación")
 
 with st.popover("🔑 Configurar Token de GitHub (Recomendado)"):
@@ -72,7 +66,7 @@ else:
 
 st.markdown("---")
 
-# 4. SECCIÓN DE BÚSQUEDA Y EJECUCIÓN
+# 2. SECCIÓN DE BÚSQUEDA Y EJECUCIÓN
 st.subheader("2. Analizar Repositorio")
 url_repo = st.text_input("Introduce la URL del repositorio de GitHub:", placeholder="https://github.com/usuario/nombre-repositorio")
 
@@ -87,9 +81,9 @@ if st.button("Iniciar Auditoría 📊"):
                 token_envio = st.session_state["github_token"] if st.session_state["github_token"] else "null"
                 path_bridge = os.path.join("core_js", "bridge.js")
                 
-                # Ejecutamos llamando directamente al binario absoluto de Node portátil
+                # Ejecutamos el puente de Node invocando el módulo nativo de python nodejs-bin
                 resultado_proceso = subprocess.run(
-                    [node_path, path_bridge, token_envio, url_repo],
+                    ["python", "-m", "nodejs", path_bridge, token_envio, url_repo],
                     capture_output=True,
                     text=True,
                     check=True
@@ -98,7 +92,7 @@ if st.button("Iniciar Auditoría 📊"):
                 # Convertimos la salida JSON a un diccionario de Python
                 metricas = json.loads(resultado_proceso.stdout)
                 
-                # 5. MOSTRAR RESULTADOS VISUALES
+                # 3. MOSTRAR RESULTADOS VISUALES
                 st.success(f"¡Auditoría completada para **{metricas['nombre']}**!")
                 
                 if metricas['descripcion']:
