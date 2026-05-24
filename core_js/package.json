@@ -1,0 +1,10 @@
+{
+  "name": "github-repo-auditor-core",
+  "version": "1.0.0",
+  "description": "Logica en JavaScript para auditar repositorios con la API de GitHub",
+  "main": "github_analyzer.js",
+  "type": "module",
+  "dependencies": {
+    "@octokit/core": "^6.1.3"
+  }
+}
